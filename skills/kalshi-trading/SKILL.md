@@ -42,73 +42,114 @@ Run `/quantish-mcp-setup` first to connect to the MCP servers.
 
 ## Finding Markets via Discovery
 
-**Use the Discovery MCP to search for markets across all platforms, then trade on Kalshi.**
+**Use the Discovery MCP to search for markets, then trade directly via the ticker.**
 
-### Search with Discovery
+### Discovery → Kalshi Direct Mapping
 
+The `id` field in Discovery's nested markets IS the Kalshi ticker. Use it directly with `kalshi_get_market`.
+
+### Complete Workflow
+
+**Step 1: Search via Discovery**
 ```tool
 mcp__quantish-discovery__search_markets
-  query: "NFL MVP"
+  query: "Seattle Pro Football"
   platform: "kalshi"
   limit: 5
-```
-
-**Response includes:**
-```json
-{
-  "markets": [{
-    "platform": "kalshi",
-    "id": "KXNFLMVP-26",
-    "title": "Who will win 2026 NFL MVP?",
-    "category": "Sports",
-    "prices": [
-      {"outcome": "Nico Collins", "price": 0.01, "ticker": "KXNFLMVP-26-NCOL"},
-      {"outcome": "Josh Allen", "price": 0.15, "ticker": "KXNFLMVP-26-JALL"}
-    ]
-  }]
-}
-```
-
-**Key mapping:** The `ticker` field (e.g., `KXNFLMVP-26-NCOL`) is what you use with Kalshi trading tools.
-
-### Discovery → Kalshi Workflow
-
-1. `mcp__quantish-discovery__search_markets` → Find market, get ticker
-2. `mcp__quantish-kalshi__kalshi_get_market` → Get yesMint/noMint for that ticker
-3. `mcp__quantish-kalshi__kalshi_buy_yes/no` → Execute trade
-
-## Market Initialization
-
-**Some Kalshi markets are not yet "tokenized" on-chain.** Before the first trade, they need to be initialized.
-
-### Check if Market is Initialized
-
-```tool
-mcp__quantish-kalshi__kalshi_check_market_initialization
-  ticker: "KXNFLMVP-26-NCOL"
 ```
 
 **Response:**
 ```json
 {
-  "ticker": "KXNFLMVP-26-NCOL",
-  "isInitialized": false,
-  "initializationCost": "~0.002 SOL"
+  "markets": [{
+    "platform": "kalshi",
+    "id": "KXSB-26",
+    "title": "Pro Football Champion: Seattle vs New England",
+    "markets": [
+      {"id": "KXSB-26-SEA", "question": "Seattle", "prices": [{"outcome": "Yes", "price": 0.68}]},
+      {"id": "KXSB-26-NE", "question": "New England", "prices": [...]}
+    ]
+  }]
 }
 ```
 
-### Initialize a Market
+**Key mapping:** `markets[].id` (e.g., `KXSB-26-SEA`) = Kalshi ticker for trading
 
-If `isInitialized: false`, you must initialize before trading:
-
+**Step 2: Get market details with yesMint**
 ```tool
-mcp__quantish-kalshi__kalshi_initialize_market
-  outcomeMint: "3ojpNwqx2RVYpTCXLfKknvSXWWJFuVT2pdzotZ5PG1wF"
+mcp__quantish-kalshi__kalshi_get_market
+  ticker: "KXSB-26-SEA"
 ```
 
-**Cost:** ~0.002 SOL for the initialization transaction.
+**Response:**
+```json
+{
+  "market": {
+    "ticker": "KXSB-26-SEA",
+    "yesBid": "0.6700",
+    "yesAsk": "0.6800",
+    "accounts": {
+      "CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH": {
+        "yesMint": "9xUDJs6TjXaQE1NPWVaAmEXZADxvKdtSRoSoWWYZUypd",
+        "noMint": "H8YaUJvkEbvxRsZVsAftipnUPEHzTfHqb41b7xP8Qkat",
+        "isInitialized": true
+      }
+    }
+  }
+}
+```
 
-**Note:** Most popular markets are already initialized. You'll typically only need this for newer or less-traded markets.
+**Important:** Use the `yesMint`/`noMint` from the `CASHx9KJ...` account (CASH settlement token).
+
+**Step 3: Execute trade**
+```tool
+mcp__quantish-kalshi__kalshi_buy_yes
+  marketTicker: "KXSB-26-SEA"
+  yesOutcomeMint: "9xUDJs6TjXaQE1NPWVaAmEXZADxvKdtSRoSoWWYZUypd"
+  usdcAmount: 2
+```
+
+### Verified Working Markets
+
+These market patterns work with Discovery → DFlow:
+- `KXSB-26-*` (Pro Football Championship)
+- `KXNBA-26-*` (Pro Basketball Finals)
+- `KXFEDCHAIRNOM-29-*` (Fed Chair Nomination)
+- `KXNFLMVP-26-*` (NFL MVP)
+
+### Handling "Market Not Found"
+
+If `kalshi_get_market` returns "Market not found", the market may not be on DFlow yet. Try searching for alternative markets in the same category.
+
+## Market Initialization
+
+**Some Kalshi markets are not yet "tokenized" on-chain.** Initialization happens automatically on first trade.
+
+### Check if Market is Initialized (Optional)
+
+```tool
+mcp__quantish-kalshi__kalshi_check_market_initialization
+  ticker: "KXVOTEFEDCHAIR-27-RPAU"
+```
+
+**Response:**
+```json
+{
+  "ticker": "KXVOTEFEDCHAIR-27-RPAU",
+  "isInitialized": false,
+  "yesMint": "4xzcnQx6jU6oGdoryV5WarbUGXBQPSsvgBdGnXjpbdCh",
+  "noMint": "42KGbgY1PGudyFtzE69kSyqHvbeXR1mfMuABh1Xotiny",
+  "message": "Market needs initialization before first trade."
+}
+```
+
+### Initialization is Automatic
+
+**You do NOT need to manually initialize.** When you place your first trade on an uninitialized market, DFlow handles initialization automatically.
+
+**Cost:** ~0.02 SOL for initialization (included in first trade).
+
+**Note:** Most popular markets are already initialized. You'll only pay the init cost on newer or less-traded markets.
 
 ## Trading Workflow
 
@@ -396,8 +437,9 @@ All Kalshi tokens use 6 decimals:
 
 ### Gas Costs
 
-- Typical trade: ~0.004 SOL
-- Keep at least 0.01 SOL for gas
+- Typical trade (initialized market): ~0.005 SOL
+- First trade on uninitialized market: ~0.025 SOL (includes init)
+- Keep at least 0.05 SOL for gas
 
 ## Best Practices
 
@@ -410,15 +452,38 @@ All Kalshi tokens use 6 decimals:
 ## Example: Complete Trade Flow
 
 ```
-1. kalshi_get_wallet_status → Confirm ready
-2. kalshi_get_balances → Check USDC and SOL
-3. discovery__search_markets → Find market via Discovery, get ticker
-4. kalshi_check_market_initialization → Check if initialized
-5. kalshi_initialize_market → Initialize if needed (costs ~0.002 SOL)
-6. kalshi_get_market → Get yesMint/noMint
-7. kalshi_get_live_data → Check current prices
-8. kalshi_buy_yes → Execute trade
-9. kalshi_get_token_holdings → Verify position
+1. kalshi_get_balances → Check USDC and SOL
+2. discovery__search_markets → Find market via Discovery
+   query: "Fed Chair", platform: "kalshi"
+   → Returns event ID + nested market IDs
+3. kalshi_get_market → Get yesMint/noMint from CASHx9KJ... account
+   ticker: "KXVOTEFEDCHAIR-27-RPAU"
+4. kalshi_buy_yes or kalshi_buy_no → Execute trade
+   marketTicker + outcomeMint + usdcAmount
+   (initialization happens automatically if needed)
+5. kalshi_get_token_holdings → Verify position
+```
+
+### Tested Example (Feb 2026)
+
+```
+Discovery: search_markets("Fed Chair", platform="kalshi")
+  → Found KXVOTEFEDCHAIR-27-RPAU (Rand Paul vote)
+
+Get Market: kalshi_get_market("KXVOTEFEDCHAIR-27-RPAU")
+  → noMint: 42KGbgY1PGudyFtzE69kSyqHvbeXR1mfMuABh1Xotiny
+  → isInitialized: false
+
+Trade: kalshi_buy_no(
+  marketTicker: "KXVOTEFEDCHAIR-27-RPAU",
+  noOutcomeMint: "42KGbgY1PGudyFtzE69kSyqHvbeXR1mfMuABh1Xotiny",
+  usdcAmount: 1
+)
+  → Success! Got 1 NO share for $0.66
+  → Auto-initialized market (cost ~0.02 SOL)
+
+Verify: kalshi_get_token_holdings
+  → Shows 1,000,000 tokens (1 share)
 ```
 
 ## Error Handling

@@ -10,6 +10,22 @@ tags: [trading, kalshi, prediction-markets, solana]
 
 Complete guide to trading on Kalshi through the Quantish MCP server using Solana and DFlow.
 
+## What is DFlow?
+
+**DFlow is the on-chain API that connects Kalshi's order book to Solana.**
+
+Kalshi is a CFTC-regulated prediction market exchange. DFlow enables:
+- Trading Kalshi markets using your Solana wallet
+- On-chain settlement of prediction market positions
+- Permissionless access to Kalshi liquidity
+
+When you trade via this MCP, you're:
+1. Swapping USDC for outcome tokens (YES/NO) via DFlow
+2. Those tokens represent your position in Kalshi's order book
+3. When markets resolve, you redeem winning tokens for USDC
+
+This is **not** the Kalshi web API - it's fully on-chain via Solana.
+
 ## Prerequisites
 
 Run `/quantish-mcp-setup` first to connect to the MCP servers.
@@ -23,6 +39,76 @@ Run `/quantish-mcp-setup` first to connect to the MCP servers.
 | Token Type | ERC-1155 | SPL Token-2022 |
 | Order Routing | CLOB direct | DFlow DEX |
 | Regulation | Crypto-native | CFTC-regulated |
+
+## Finding Markets via Discovery
+
+**Use the Discovery MCP to search for markets across all platforms, then trade on Kalshi.**
+
+### Search with Discovery
+
+```tool
+mcp__quantish-discovery__search_markets
+  query: "NFL MVP"
+  platform: "kalshi"
+  limit: 5
+```
+
+**Response includes:**
+```json
+{
+  "markets": [{
+    "platform": "kalshi",
+    "id": "KXNFLMVP-26",
+    "title": "Who will win 2026 NFL MVP?",
+    "category": "Sports",
+    "prices": [
+      {"outcome": "Nico Collins", "price": 0.01, "ticker": "KXNFLMVP-26-NCOL"},
+      {"outcome": "Josh Allen", "price": 0.15, "ticker": "KXNFLMVP-26-JALL"}
+    ]
+  }]
+}
+```
+
+**Key mapping:** The `ticker` field (e.g., `KXNFLMVP-26-NCOL`) is what you use with Kalshi trading tools.
+
+### Discovery → Kalshi Workflow
+
+1. `mcp__quantish-discovery__search_markets` → Find market, get ticker
+2. `mcp__quantish-kalshi__kalshi_get_market` → Get yesMint/noMint for that ticker
+3. `mcp__quantish-kalshi__kalshi_buy_yes/no` → Execute trade
+
+## Market Initialization
+
+**Some Kalshi markets are not yet "tokenized" on-chain.** Before the first trade, they need to be initialized.
+
+### Check if Market is Initialized
+
+```tool
+mcp__quantish-kalshi__kalshi_check_market_initialization
+  ticker: "KXNFLMVP-26-NCOL"
+```
+
+**Response:**
+```json
+{
+  "ticker": "KXNFLMVP-26-NCOL",
+  "isInitialized": false,
+  "initializationCost": "~0.002 SOL"
+}
+```
+
+### Initialize a Market
+
+If `isInitialized: false`, you must initialize before trading:
+
+```tool
+mcp__quantish-kalshi__kalshi_initialize_market
+  outcomeMint: "3ojpNwqx2RVYpTCXLfKknvSXWWJFuVT2pdzotZ5PG1wF"
+```
+
+**Cost:** ~0.002 SOL for the initialization transaction.
+
+**Note:** Most popular markets are already initialized. You'll typically only need this for newer or less-traded markets.
 
 ## Trading Workflow
 
@@ -58,6 +144,10 @@ mcp__quantish-kalshi__kalshi_get_balances
 **Important:** Need SOL for transaction fees (minimum ~0.01 SOL recommended).
 
 ### 3. Find Markets
+
+**Recommended:** Use Discovery MCP (see "Finding Markets via Discovery" above).
+
+**Alternative:** Direct Kalshi search:
 
 ```tool
 mcp__quantish-kalshi__kalshi_search_markets
@@ -322,17 +412,20 @@ All Kalshi tokens use 6 decimals:
 ```
 1. kalshi_get_wallet_status → Confirm ready
 2. kalshi_get_balances → Check USDC and SOL
-3. kalshi_search_markets → Find market
-4. kalshi_get_market → Get yesMint/noMint
-5. kalshi_get_live_data → Check current prices
-6. kalshi_buy_yes → Execute trade
-7. kalshi_get_token_holdings → Verify position
+3. discovery__search_markets → Find market via Discovery, get ticker
+4. kalshi_check_market_initialization → Check if initialized
+5. kalshi_initialize_market → Initialize if needed (costs ~0.002 SOL)
+6. kalshi_get_market → Get yesMint/noMint
+7. kalshi_get_live_data → Check current prices
+8. kalshi_buy_yes → Execute trade
+9. kalshi_get_token_holdings → Verify position
 ```
 
 ## Error Handling
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| "Market not found" | Wrong ticker format | Use kalshi_search_markets |
+| "Market not found" | Wrong ticker format | Use Discovery or kalshi_search_markets |
 | "Insufficient SOL" | No gas | Swap USDC to SOL or deposit SOL |
+| "Market not initialized" | First trade on this market | Use kalshi_initialize_market first |
 | "Transaction failed" | Various | Check tx on Solscan |

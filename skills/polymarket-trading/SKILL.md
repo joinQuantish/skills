@@ -45,19 +45,35 @@ mcp__quantish__get_balances
 }
 ```
 
-### 3. Find Markets
+### 3. Find Markets via Discovery
 
-Use the discovery server to search:
+**Use the Discovery MCP to search for markets across all platforms.**
 
 ```tool
 mcp__quantish-discovery__search_markets
   query: "government shutdown"
+  platform: "polymarket"
   limit: 5
 ```
 
-**Key fields from response:**
-- `conditionId`: Market identifier (0x...)
-- `tokenId`: Outcome token ID (long number string)
+**Response includes:**
+```json
+{
+  "markets": [{
+    "platform": "polymarket",
+    "conditionId": "0xd5a91c9ee50ba80385283714f2a66b1e16d544a682af2af06a8f57fcf1d0233d",
+    "title": "Will the government shutdown last 5 days or more?",
+    "prices": [
+      {"outcome": "Yes", "price": 0.45, "tokenId": "8008742846..."},
+      {"outcome": "No", "price": 0.55, "tokenId": "1122334455..."}
+    ]
+  }]
+}
+```
+
+**Key fields:**
+- `conditionId`: Market identifier (0x...) - needed for place_order
+- `tokenId`: Outcome token ID (long number) - needed for place_order
 - `prices[].outcome`: "Yes" or "No"
 - `prices[].price`: Current price (0.01-0.99)
 

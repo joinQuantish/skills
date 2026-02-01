@@ -174,7 +174,7 @@ mcp__quantish-kalshi__kalshi_get_balances
 **Response:**
 ```json
 {
-  "publicKey": "3yeJBPgGDvU82vReuNhtJekzarnGg5TeSK8WNPvebGnF",
+  "publicKey": "YourSolanaWalletAddress...",
   "balances": {
     "sol": 0.07,   // For gas fees (~0.004 per trade)
     "usdc": 8.0    // Available to trade

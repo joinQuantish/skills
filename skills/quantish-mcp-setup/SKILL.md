@@ -100,6 +100,13 @@ After restart, try:
 - "Show my Kalshi positions"
 ```
 
+## Next Steps
+
+After setup, use these skills for trading:
+
+- `/polymarket-trading` - Complete Polymarket trading guide
+- `/kalshi-trading` - Complete Kalshi trading guide
+
 ## Notes
 - If server already exists, `claude mcp add` will error - that's fine
 - Keys are idempotent - same email returns same key

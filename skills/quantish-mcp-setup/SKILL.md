@@ -111,6 +111,6 @@ After restarting, try:
 
 ## Notes
 - If server already exists, `claude mcp add` returns exit code 1 with "already exists" - that's fine, it's already configured
-- Keys are idempotent - same email returns same key
+- Keys are single-use - same email will NOT return the key again (save it on first signup)
 - Discovery has 5 keys/hour rate limit
 - All 4 servers must be added via `claude mcp add` — the API keys alone are useless without this configuration step

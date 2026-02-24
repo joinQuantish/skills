@@ -40,13 +40,17 @@ curl -s -X POST https://quantish-sdk-production.up.railway.app/mcp \
 ```
 Extract `apiKey` from `result.content[0].text` JSON. Format: `pk_live_...`
 
-**Setup wallet** (use the key you just got):
+**Setup Polymarket trading wallet (REQUIRED — use the key you just got):**
+
+The Polymarket API key comes with an EOA address, but that is NOT the trading wallet. You MUST call `setup_wallet` to create the Safe wallet that is actually used to trade on Polymarket. Without this call, the user cannot place orders.
+
 ```bash
 curl -s -X POST https://quantish-sdk-production.up.railway.app/mcp \
   -H "Content-Type: application/json" \
   -H "x-api-key: POLYMARKET_KEY" \
   -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"setup_wallet","arguments":{}},"id":1}'
 ```
+Extract the `safeAddress` from the response — this is the wallet the user should send USDC to for trading.
 
 **Kalshi key:**
 ```bash

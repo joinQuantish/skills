@@ -64,9 +64,9 @@ curl -s -X POST https://quantish.live/api/mcp/discovery-key \
 ```
 Extract `key` from response. Format: `qm_...`
 
-### Step 3: Add MCP Servers
+### Step 3: Add All 3 MCP Servers to Claude Code (CRITICAL)
 
-Run these 3 commands with the actual keys from Step 2:
+**Getting API keys is NOT enough.** You MUST run these commands to register each server in your Claude Code configuration. Without this step, none of the MCP tools will be available. Each command should print "Added HTTP MCP server ... to local config" on success.
 
 ```bash
 claude mcp add --transport http quantish-discovery https://quantish.live/mcp --header "X-API-Key: DISCOVERY_KEY"
@@ -80,34 +80,25 @@ claude mcp add --transport http quantish https://quantish-sdk-production.up.rail
 claude mcp add --transport http quantish-kalshi https://kalshi-mcp-production-7c2c.up.railway.app/mcp --header "x-api-key: KALSHI_KEY"
 ```
 
-### Step 4: Verify
+Verify each command printed "Added HTTP MCP server" with exit code 0. If it says "already exists", that server is already configured — that's fine.
 
-```bash
-claude mcp list
+### Step 4: Tell User to Restart Claude Code (REQUIRED)
+
+MCP servers do NOT become available until Claude Code is restarted. The tools will not appear in the current session. Tell the user:
+
 ```
+All 3 MCP servers are configured! You must exit and restart Claude Code for the tools to load.
 
-Should show all 3 quantish servers as connected.
-
-### Step 5: Done
-
-Tell user:
-```
-Setup complete! Restart Claude Code to load the servers.
-
-After restart, try:
+After restarting, try:
 - "Search for Bitcoin markets"
 - "Show my Polymarket balance"
 - "Show my Kalshi positions"
 ```
 
-## Next Steps
-
-After setup, use these skills for trading:
-
-- `/polymarket-trading` - Complete Polymarket trading guide
-- `/kalshi-trading` - Complete Kalshi trading guide
+**Do not skip this step.** If the user asks why tools aren't showing up, the answer is always: restart Claude Code.
 
 ## Notes
-- If server already exists, `claude mcp add` will error - that's fine
+- If server already exists, `claude mcp add` returns exit code 1 with "already exists" - that's fine, it's already configured
 - Keys are idempotent - same email returns same key
 - Discovery has 5 keys/hour rate limit
+- All 3 servers must be added via `claude mcp add` — the API keys alone are useless without this configuration step

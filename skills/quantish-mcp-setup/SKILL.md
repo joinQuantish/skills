@@ -15,18 +15,11 @@ Sets up 3 MCP servers for prediction market trading:
 
 ### Step 1: Get User's Email
 
-Ask for email using AskUserQuestion:
-```
-question: "What email should I use for your Quantish account?"
-header: "Email"
-options:
-  - label: "Use my email"
-    description: "I'll type my email address"
-  - label: "Skip"
-    description: "Use default account"
-```
+Ask for their email address. Each user needs their own email — it creates a unique account with its own API keys and wallet.
 
-If "Skip", use `claude-user@quantish.live` as the email.
+```
+question: "What email should I use for your Quantish account? (Required — each user gets their own keys and wallet)"
+```
 
 ### Step 2: Get API Keys
 

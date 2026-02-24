@@ -80,7 +80,7 @@ claude mcp add --transport http quantish-discovery https://quantish.live/mcp --h
 ```
 
 ```bash
-claude mcp add --transport http quantish https://quantish-sdk-production.up.railway.app/mcp --header "x-api-key: POLYMARKET_KEY"
+claude mcp add --transport http quantish-polymarket https://quantish-sdk-production.up.railway.app/mcp --header "x-api-key: POLYMARKET_KEY"
 ```
 
 ```bash

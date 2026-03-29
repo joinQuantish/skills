@@ -1,5 +1,7 @@
 # Quantish Skills
 
+> **⚠️ Notice: Quantish is winding down.** The Quantish platform (quantish.live) is shutting down. This project is no longer being maintained. For real-time prediction market data infrastructure, check out [polynode.dev](https://polynode.dev).
+
 Claude Code skills for prediction market trading.
 
 ## Available Skills
